@@ -36,6 +36,23 @@ class Trajectory:
         self.A = np.zeros((N_dim, self.length))
 
 
+def remove_zero_columns(A):
+    """Remove all zeros columns from an array
+    
+    Parameters
+    ----------
+    A : np.array (2D)
+        Input array
+    
+    Returns
+    -------
+    np.array 
+        Array with all zeros columns removed
+
+    """
+    zero_idx = np.argwhere(np.all(A[...,:]==0, axis=0))
+    return np.delete(A, zero_idx, axis=1)
+
 
 def check_obs_collision(positions, obs, r_collision):
     """Check a sequence of positions against a single obstacle for collision.

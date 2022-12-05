@@ -1,3 +1,9 @@
+"""SimplePlanner class
+
+This module defines the SimplePlanner class.
+
+"""
+
 import numpy as np
 import time 
 
