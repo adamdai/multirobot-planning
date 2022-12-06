@@ -84,13 +84,13 @@ def compute_FRS(LPM, p_0, v_0, a_0):
     
     FRS = PRS + ERS
 
-    For, we use a constant zonotope for ERS.
+    For, we use a constant zonotope for ERS. ERS includes robot body
     
     """
     N = len(LPM.time)
     FRS = N * [None]
     PRS = compute_PRS(LPM, p_0, v_0, a_0)
-    ERS = Zonotope(np.zeros((2*params.N_DIM,1)), np.vstack((params.ERS_MAG * np.eye(params.N_DIM), np.zeros((params.N_DIM, params.N_DIM)))))
+    ERS = Zonotope(np.zeros((2*params.N_DIM,1)), np.vstack(((params.ERS_MAG + params.R_BOT) * np.eye(params.N_DIM), np.zeros((params.N_DIM, params.N_DIM)))))
 
     # Add ERS
     for i, zono in enumerate(PRS):

@@ -25,7 +25,7 @@ class RTD_Planner:
 
     """
 
-    def __init__(self, lpm_file, p_0, r_body):
+    def __init__(self, lpm_file, p_0):
         """Constructor
         
         Parameters
@@ -36,8 +36,6 @@ class RTD_Planner:
             Initial position
         map : Scan
             Current map of environment
-        r_body : Zonotope
-            Zonotope representing robot body (centered at 0)
 
         """
         # Initialize LPM object
@@ -59,30 +57,7 @@ class RTD_Planner:
 
         # Obstacles
         self.obstacles = []
-
-        # Robot body (represented as zonotope)
-        self.r_body = r_body
-
-
-    def check_obstacle_collisions(self, positions):
-        """ Check a sequence of positions against the current list of nearby obstacles for collision.
-
-        Parameters
-        ----------
-        positions : np.array
-            Trajectory positions to check against obstacles.
-
-        Returns
-        -------
-        bool
-            True if plan is safe, False if there is a collision.
-
-        """
-        for obs in self.obstacles:
-            if not utils.check_obs_collision(positions, obs, 2*params.R_BOT):
-                return False
-        return True
-
+        
 
     def traj_opt(self, A_con, b_con, t_start_plan):
         """Trajectory optimization (using sampling)
@@ -169,9 +144,9 @@ class RTD_Planner:
 
         # Generate collision constraints
         # NOTE: For now, only generate constraints for final element of FRS
-        nearby_obs = [self.zono_map[i] for i in self.get_nearby_obs_idxs()]
+        #nearby_obs = [self.zono_map[i] for i in self.get_nearby_obs_idxs()]
         #A_con, b_con = generate_collision_constraints(FRS[-1], nearby_obs)
-        A_con, b_con = generate_collision_constraints_FRS(FRS, nearby_obs)
+        A_con, b_con = generate_collision_constraints_FRS(FRS, self.obstacles)
 
         # Find a new v_peak
         v_peak = self.traj_opt(A_con, b_con, t_start_plan)
@@ -185,9 +160,11 @@ class RTD_Planner:
             P,V,A = self.LPM.compute_trajectory(k)
             P = P + self.p_0  # translate to p_0
 
-            # TODO: slice FRS by v_peak
+            # Slice FRS by v_peak
             FRS_slc = []
-            for frs in FRS:
+            for frs in FRS[1:]:
                 FRS_slc.append(frs.slice(params.K_DIM, v_peak))
 
-            return P,V,A
+            # TODO: Publish FRS to other agents
+
+            return P,V,A, FRS_slc
