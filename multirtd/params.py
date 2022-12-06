@@ -18,3 +18,11 @@ DELTA_V_PEAK_MAX = 3.0  # Delta from initial velocity constraint
 R_GOAL_REACHED = 0.3  # [m] stop planning when within this dist of goal
 
 N_PLAN_MAX = 10000  # Max number of plans to evaluate
+
+
+# Reachability
+ERS_MAG = 1.0             # Error reachable set size
+K_DIM = np.array([2, 3])  # Trajectory parameter dimensions (row idxs) in FRS
+                              # TODO: generalize this
+OBS_DIM = np.arange(N_DIM)  # Obstacle dimensions (row idxs) in FRS
+                            # - obstacles exist in position space

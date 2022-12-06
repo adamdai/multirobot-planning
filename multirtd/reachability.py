@@ -90,9 +90,7 @@ def compute_FRS(LPM, p_0, v_0, a_0):
     N = len(LPM.time)
     FRS = N * [None]
     PRS = compute_PRS(LPM, p_0, v_0, a_0)
-
-    ERS_mag = 1.0
-    ERS = Zonotope(np.zeros((2*params.N_DIM,1)), np.vstack((ERS_mag * np.eye(params.N_DIM), np.zeros((params.N_DIM, params.N_DIM)))))
+    ERS = Zonotope(np.zeros((2*params.N_DIM,1)), np.vstack((params.ERS_MAG * np.eye(params.N_DIM), np.zeros((params.N_DIM, params.N_DIM)))))
 
     # Add ERS
     for i, zono in enumerate(PRS):
@@ -164,6 +162,20 @@ def generate_collision_constraints_FRS(FRS, obs_map):
 
 def generate_collision_constraints(z, obs_map):
     """Generate collision constraints for single index of FRS
+
+    Parameters
+    ----------
+    z : Zonotope
+        Zonotope representing forward reachable set
+    obs_map : list
+        List of zonotopes representing obstacles
+
+    Returns
+    -------
+    A_con : list
+        List of constraint matrices
+    b_con : list
+        List of constraint vectors
     
     """
     A_con = []

@@ -37,7 +37,7 @@ class Zonotope(object):
         self.G = generators
         self.Z = np.hstack((center, generators))
         self.dim = center.shape[0]
-        self.order = generators.shape[1]
+        self.n_gen = generators.shape[1]
 
 
     ### ====== Printing ====== ###
@@ -280,7 +280,7 @@ class Zonotope(object):
         c = self.c
         G = self.G
         n = self.dim
-        m = self.order
+        m = self.n_gen
 
         if n == 1:
             # Compute the two vertices for 1-dimensional case
@@ -322,7 +322,7 @@ class Zonotope(object):
             #TODO: delete aligned and all-zero generators
 
             # Check if zonotope is full-dimensional
-            if self.order < n:
+            if self.n_gen < n:
                 #TODO: verticesIterateSVG
                 print("Vertices for non full-dimensional zonotope not implemented yet - returning empty array")
                 V = np.empty()
@@ -338,7 +338,7 @@ class Zonotope(object):
             
 
     ### ====== Plotting ====== ###
-    def plot(self, ax=None, color='b', alpha=0.5):
+    def plot(self, ax=None, color='b', alpha=0.2):
         """Plot function 
         
         Parameters 
@@ -357,8 +357,10 @@ class Zonotope(object):
 
         if ax == None:
             fig, ax = plt.subplots()
-        poly = Polygon(V.T, True, color=color, alpha=alpha)
+        poly = Polygon(V.T, closed=True, fill=True, color=color, alpha=alpha)
+        poly_edge = Polygon(V.T, closed=True, fill=False, color=color)
         ax.add_patch(poly)
+        ax.add_patch(poly_edge)
 
         # Recompute the ax.dataLim
         ax.relim()
