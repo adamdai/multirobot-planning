@@ -9,13 +9,17 @@ Clone the GitHub repository:
 
     git clone https://github.com/adamdai/multirobot-planning.git
 
-Create conda environment from `.yml` file:
+Create conda environment:
 
-    conda env create -f environment.yml
+    conda create -n chimera python=3.9
 
 Active the environment:
    
     conda activate multirtd
+    
+Install dependencies:
+
+    pip install numpy scipy matplotlib
    
 Install `multirtd` locally from directory containing `setup.py`
    
