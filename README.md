@@ -11,7 +11,7 @@ Clone the GitHub repository:
 
 Create conda environment:
 
-    conda create -n chimera python=3.9
+    conda create -n multirtd python=3.9
 
 Active the environment:
    
