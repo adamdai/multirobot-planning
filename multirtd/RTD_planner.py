@@ -5,7 +5,7 @@ import multirtd.params as params
 from multirtd.LPM import LPM
 import multirtd.utils as utils
 from multirtd.zonotope import Zonotope  
-from multirtd.reachability import compute_FRS, generate_collision_constraints_FRS, check_collision_constraints
+from multirtd.reachability import compute_FRS, generate_collision_constraints_FRS, check_collision_constraints, generate_collision_constraints_agents
 
 
 class RTD_Planner:
@@ -57,6 +57,9 @@ class RTD_Planner:
 
         # Obstacles
         self.obstacles = []
+        
+        # Friendly Agents
+        self.agents = []
         
 
     def traj_opt(self, A_con, b_con, t_start_plan):
@@ -117,6 +120,7 @@ class RTD_Planner:
                 break
 
         # No v_peaks are feasible (or we ran out of time)
+        print("No solution found.")
         return None
         
 
@@ -147,6 +151,9 @@ class RTD_Planner:
         #nearby_obs = [self.zono_map[i] for i in self.get_nearby_obs_idxs()]
         #A_con, b_con = generate_collision_constraints(FRS[-1], nearby_obs)
         A_con, b_con = generate_collision_constraints_FRS(FRS, self.obstacles)
+        A_con2, b_con2 = generate_collision_constraints_agents(FRS, self.agents)
+        A_con = A_con + A_con2
+        b_con = b_con + b_con2
 
         # Find a new v_peak
         v_peak = self.traj_opt(A_con, b_con, t_start_plan)

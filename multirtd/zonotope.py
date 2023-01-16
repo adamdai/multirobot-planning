@@ -149,6 +149,7 @@ class Zonotope(object):
             if len(myidxs) != 1:
                 if len(myidxs) == 0:
                     print('No generator for slice index')
+                    return None
                 else:
                     print('Multiple generators for slice index')
             slice_idx.append(myidxs[0])
@@ -338,7 +339,7 @@ class Zonotope(object):
             
 
     ### ====== Plotting ====== ###
-    def plot(self, ax=None, color='b', alpha=0.2):
+    def plot(self, ax=None, color='b', alpha=0.2, line_alpha=1):
         """Plot function 
         
         Parameters 
@@ -358,7 +359,7 @@ class Zonotope(object):
         if ax == None:
             fig, ax = plt.subplots()
         poly = Polygon(V.T, closed=True, fill=True, color=color, alpha=alpha)
-        poly_edge = Polygon(V.T, closed=True, fill=False, color=color)
+        poly_edge = Polygon(V.T, closed=True, fill=False, color=color, alpha=line_alpha)
         ax.add_patch(poly)
         ax.add_patch(poly_edge)
 
