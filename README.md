@@ -19,7 +19,7 @@ Active the environment:
     
 Install dependencies:
 
-    pip install numpy scipy matplotlib ipykernel
+    pip install -r requirements.txt
    
 Install `multirtd` locally from directory containing `setup.py`
    
