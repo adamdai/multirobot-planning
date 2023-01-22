@@ -159,6 +159,66 @@ def generate_collision_constraints_FRS(FRS, obs_map):
     
     return A_con, b_con
 
+def generate_collision_constraints_agents(FRS, ag_map):
+    """Generate collision constraints for single index of FRS
+
+    Parameters
+    ----------
+    z : Zonotope
+        Zonotope representing forward reachable set
+    obs_map : list
+        List of zonotopes representing obstacles
+
+    Returns
+    -------
+    A_con : list
+        List of constraint matrices
+    b_con : list
+        List of constraint vectors
+    
+    """
+    A_con = []
+    b_con = []
+
+    # Track the current time step so it can be matched in the agent FRS
+    t = 1
+    # Skip first time step since it is not sliceable
+    for z in FRS[1:]:
+        # Extract center and generators of FRS
+        c = z.c[params.OBS_DIM]
+        G = z.G
+
+        # Find columns of G which are nonzero in k_dim ("k-sliceable")
+        # - this forms a linear map from the parameter space to workspace
+        k_col = list(set(np.nonzero(G[params.K_DIM,:])[1]))
+        k_slc_G = G[params.OBS_DIM][:,k_col]
+
+        # "non-k-sliceable" generators - have constant contribution regardless of chosen trajectory parameter
+        k_no_slc_G = G[params.OBS_DIM]
+        k_no_slc_G = np.delete(k_no_slc_G, k_col, axis=1)
+
+        # For each agent, generate constraints with the FRS at the same time point
+        for ag in ag_map:
+            # If we finished checking the agent FRS, stop
+            if t==len(ag):
+                break
+            current = ag[t]
+            # Get current obstacle
+            obs = current.view([0,1]).Z
+
+            # Obstacle is "buffered" by non-k-sliceable part of FRS
+            buff_obs_c = obs[:,0][:,None] - c
+            buff_obs_G = np.hstack((obs[:,1:], k_no_slc_G))
+            buff_obs_G = remove_zero_columns(buff_obs_G)
+            buff_obs = Zonotope(buff_obs_c, buff_obs_G)
+
+            A_obs, b_obs = buff_obs.halfspace()
+            A_con.append(A_obs @ k_slc_G)  # map constraints to be over coefficients of k_slc_G generators
+            b_con.append(b_obs)
+        t+=1
+    
+    return A_con, b_con
+
 
 def generate_collision_constraints(z, obs_map):
     """Generate collision constraints for single index of FRS
@@ -209,7 +269,6 @@ def generate_collision_constraints(z, obs_map):
         b_con.append(b_obs)
     
     return A_con, b_con
-
 
 def check_collision_constraints(A_con, b_con, v_peak):
     """Check a trajectory parameter against halfspace collision constraints.

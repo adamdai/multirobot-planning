@@ -24,7 +24,7 @@ N_PLAN_MAX = 1000  # Max number of plans to evaluate
 
 
 # Reachability
-ERS_MAG = 0.5             # Error reachable set size
+ERS_MAG = 0.25             # Error reachable set size
 K_DIM = np.array([2, 3])  # Trajectory parameter dimensions (row idxs) in FRS
                               # TODO: generalize this
 OBS_DIM = np.arange(N_DIM)  # Obstacle dimensions (row idxs) in FRS
