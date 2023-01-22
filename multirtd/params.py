@@ -4,6 +4,7 @@ import numpy as np
 T_REPLAN = 5.0  # [s] amount of time between replans
 T_PLAN = 5.0  # [s] amount of time allotted for planning itself 
               #     (allow buffer for actual tranmission of plan)
+T_PK = 1.5  # [s] time along trajectory of peak velocity
 
 N_DIM = 2  # workspace dimension (i.e. 2D or 3D)
 
@@ -14,6 +15,8 @@ V_MAX = 2.0  # L1 velocity constraints
 V_BOUNDS = np.tile(np.array([-V_MAX, V_MAX]), (1,N_DIM))[0]
 V_MAX_NORM = 2.0  # L2 velocity constraints
 DELTA_V_PEAK_MAX = 3.0  # Delta from initial velocity constraint
+
+W_MAX = 2.0  # [rad/s] max angular velocity (turning rate)
 
 R_GOAL_REACHED = 0.3  # [m] stop planning when within this dist of goal
 

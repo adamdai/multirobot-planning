@@ -71,7 +71,7 @@ def check_obs_collision(positions, obs, r_collision):
 
     """
     c_obs, r_obs = obs
-    d_vec = np.linalg.norm(positions - c_obs[:,None], axis=0)
+    d_vec = np.linalg.norm(positions - c_obs, axis=1)
     if any(d_vec <= r_collision + r_obs):
         return False
     else:
@@ -98,11 +98,11 @@ def rand_in_bounds(bounds, n):
     y_pts = np.random.uniform(bounds[2], bounds[3], n)
     # 2D 
     if len(bounds) == 4:
-        return np.vstack((x_pts, y_pts))
+        return np.hstack((x_pts[:,None], y_pts[:,None]))
     # 3D
     elif len(bounds) == 6:
         z_pts = np.random.uniform(bounds[4], bounds[5], n)
-        return np.vstack((x_pts, y_pts, z_pts))
+        return np.hstack((x_pts[:,None], y_pts[:,None], z_pts[:,None]))
     else:
         raise ValueError('Please pass in bounds as either [xmin xmax ymin ymax] '
                             'or [xmin xmax ymin ymax zmin zmax] ')
@@ -112,10 +112,10 @@ def prune_vel_samples(V, v_0, max_norm, max_delta):
     """Prune Velocity Samples
     
     """
-    V_mag = np.linalg.norm(V, axis=0)
-    delta_V = np.linalg.norm(V - v_0, axis=0)
+    V_mag = np.linalg.norm(V, axis=1)
+    delta_V = np.linalg.norm(V - v_0, axis=1)
     keep_idx = np.logical_and(V_mag < max_norm, delta_V < max_delta)
-    return V[:,keep_idx]
+    return V[keep_idx]
 
 
 def dlqr_calculate(G, H, Q, R):
@@ -140,3 +140,45 @@ def dlqr_calculate(G, H, Q, R):
     K = inv(H.T@P@H + R)@H.T@P@G    #K = (B^T P B + R)^-1 B^T P A 
 
     return K
+
+
+def normalize(v):
+    """Normalize a vector
+
+    Parameters
+    ----------
+    v : np.array
+        Vector to normalize
+
+    Returns
+    -------
+    np.array
+        Normalized vector
+
+    """
+    if np.linalg.norm(v) == 0:
+        return v
+    return v / np.linalg.norm(v)
+
+
+def signed_angle_btwn_vectors(v1, v2):
+    """Signed angle between two 2D vectors
+
+    Counter-clockwise is positive, clockwise is negative.
+
+    Parameters
+    ----------
+    v1 : np.array
+        Vector 1
+    v2 : np.array
+        Vector 2
+
+    Returns
+    -------
+    float
+        Angle between vectors in radians
+
+    """
+    v1_ = normalize(v1.flatten())
+    v2_ = normalize(v2.flatten())
+    return np.sign(np.cross(v1_, v2_)) * np.arccos(np.dot(v1_, v2_))
