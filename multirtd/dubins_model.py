@@ -3,6 +3,20 @@
 """
 
 import numpy as np
+from sympy import symbols, lambdify, Array, sin, cos, diff
+
+
+# Generate symbolic dynamics
+x, y, th, v, w = symbols('x y th v w')
+
+dt = 0.1
+N = 15
+x0 = Array([x, y, th])
+expr = x0
+for i in range(N):
+    expr = expr + dt * Array([v*cos(expr[2]), v*sin(expr[2]), w])
+
+dubins = lambdify([x, y, th, v, w], expr)
 
 
 def dubins_step(x, u, dt, sigma=np.zeros((3, 3))):
