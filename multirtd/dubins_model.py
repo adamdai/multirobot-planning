@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def dubins_step(x, u, dt):
+def dubins_step(x, u, dt, sigma=np.zeros((3, 3))):
     """Run one step of dynamics
 
     Parameters
@@ -26,7 +26,7 @@ def dubins_step(x, u, dt):
     x_dot = u[0] * np.cos(x[2])
     y_dot = u[0] * np.sin(x[2])
     theta_dot = u[1]
-    x_new = x + np.array([x_dot, y_dot, theta_dot]) * dt
+    x_new = x + np.array([x_dot, y_dot, theta_dot]) * dt + np.random.multivariate_normal(np.zeros(3), sigma)
     return x_new
 
 
@@ -38,9 +38,9 @@ def dubins_step_new(x, u, dt):
         dy = u[0] / u[1] * (-np.cos(x[2] + u[1] * dt) + np.cos(x[2]))
         dtheta = u[1] * dt
         return x + np.array([dx, dy, dtheta])
+    
 
-
-def dubins_traj(x0, U, dt):
+def dubins_traj(x0, U, dt, sigma=np.zeros((3, 3))):
     """Compute dubins trajectory from a sequence of controls
     
     Parameters
@@ -61,7 +61,7 @@ def dubins_traj(x0, U, dt):
     traj = np.zeros((len(U), 3))
     traj[0] = x0
     for i in range(1, len(U)):
-        traj[i] = dubins_step(traj[i-1], U[i-1], dt)
+        traj[i] = dubins_step(traj[i-1], U[i-1], dt, sigma)
     return traj
 
 

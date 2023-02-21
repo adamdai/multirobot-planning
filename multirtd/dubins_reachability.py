@@ -5,9 +5,9 @@ import math
 
 from scipy.optimize import linprog
 from scipy.stats.distributions import chi2
-import cvxpy as cvx
+#import cvxpy as cvx
 
-from planner.probabilistic_zonotope import pZ
+from multirtd.probabilistic_zonotope import pZ
 
 
 def initialize_reachability_analysis(x_nom0, P0):
