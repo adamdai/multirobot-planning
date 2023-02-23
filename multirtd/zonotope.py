@@ -367,3 +367,28 @@ class Zonotope(object):
         ax.relim()
         # Update ax.viewLim using the new dataLim
         ax.autoscale_view()
+
+
+
+def cov_to_zonotope(cov, m=3, c=None):
+    """Convert covariance matrix to m-sigma confidence zonotope
+
+    Parameters
+    ----------
+    cov : np.array
+        Covariance matrix
+    m : int
+        Confidence level (number of sigma)
+    c : np.array
+        Center of zonotope
+
+    Returns
+    -------
+    Zonotope
+        Zonotope object
+
+    """
+    if c is None:
+        c = np.zeros((cov.shape[0], 1))
+    G = np.linalg.cholesky(cov)
+    return Zonotope(c, G)

@@ -1,5 +1,7 @@
 import numpy as np
 import time
+from matplotlib.patches import Ellipse
+from scipy.stats import chi2
 
 from multirtd.LPM import LPM
 import multirtd.params as params
@@ -182,3 +184,19 @@ def signed_angle_btwn_vectors(v1, v2):
     v1_ = normalize(v1.flatten())
     v2_ = normalize(v2.flatten())
     return np.sign(np.cross(v1_, v2_)) * np.arccos(np.dot(v1_, v2_))
+
+
+def plot_ellipse(ax, c, Sigma, conf=0.95):
+    """Plot confidence ellipse from center and covariance matrix
+    
+    """
+    s = chi2.ppf(conf, 2)
+    vals, vecs = np.linalg.eig(Sigma)
+    vals = np.maximum(vals, 1e-6)
+    order = vals.argsort()[::-1]
+    vals = vals[order]
+    vecs = vecs[:, order]
+    theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
+    width, height = 2 * np.sqrt(s) * np.sqrt(vals)
+    ellip = Ellipse(xy=c, width=width, height=height, angle=theta, alpha=0.5)
+    ax.add_artist(ellip)

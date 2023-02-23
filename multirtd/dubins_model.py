@@ -105,6 +105,16 @@ def linearize_dynamics(x, u, dt):
         Linearized dynamics matrix
 
     """
+    G_x = np.array([[1, 0, -u[0] * np.sin(x[2]) * dt],
+                    [0, 1,  u[0] * np.cos(x[2]) * dt],
+                    [0, 0, 1]])
+    G_u = np.array([[np.cos(x[2]) * dt, -0.5 * u[0] * dt**2 * np.sin(x[2])],
+                    [np.sin(x[2]) * dt,  0.5 * u[0] * dt**2 * np.cos(x[2])],
+                    [0, dt]])
+    return G_x, G_u
+
+
+def linearize_dynamics_new(x, u, dt):
     if u[1] > 1e-6:
         theta = x[2] + u[1] * dt
         G_x = np.array([[1, 0, u[0] / u[1] * (np.cos(theta) - np.cos(x[2]))],
