@@ -187,7 +187,7 @@ def signed_angle_btwn_vectors(v1, v2):
 
 
 def plot_ellipse(ax, c, Sigma, conf=0.95):
-    """Plot confidence ellipse from center and covariance matrix
+    """Plot 2D confidence ellipse from center and covariance matrix
     
     """
     s = chi2.ppf(conf, 2)
