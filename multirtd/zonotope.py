@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 import itertools
+from scipy.linalg import sqrtm
 
 from multirtd.utils import remove_zero_columns
 
@@ -388,7 +389,17 @@ def cov_to_zonotope(cov, m=3, c=None):
         Zonotope object
 
     """
-    if c is None:
-        c = np.zeros((cov.shape[0], 1))
-    G = np.linalg.cholesky(cov)
-    return Zonotope(c, G)
+    Q = -2 * np.log(1 - P) * cov
+    Tinv = sqrtm(Q)
+
+    m = 5 # number of generators to use
+
+    # m evenly spaced out points on the unit circle
+    theta = np.linspace(0, 2*np.pi, m, endpoint=False)
+    G = np.array([np.cos(theta), np.sin(theta)])
+
+    # TODO: Compute L: minimum distance between the origin and the boundary of Zonotope(0, G)
+    # For now, hardcoded based on m=5
+    L = 3.0777
+
+    return Zonotope(c[:,None], (1/L) * Tinv @ G)
