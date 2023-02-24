@@ -371,8 +371,8 @@ class Zonotope(object):
 
 
 
-def cov_to_zonotope(cov, m=3, c=None):
-    """Convert covariance matrix to m-sigma confidence zonotope
+def cov_to_zonotope(cov, P=0.997, c=None):
+    """Convert covariance matrix to P confidence zonotope
 
     Parameters
     ----------
