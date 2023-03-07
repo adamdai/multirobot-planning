@@ -28,18 +28,7 @@ class DubinsPlanner:
 
     """
 
-    def __init__(self, lpm_file, p_0):
-        # Initialize LPM object
-        self.LPM = LPM(lpm_file)
-        self.N_T_PLAN = len(self.LPM.time)  # planned trajectory length
-        self.DT = self.LPM.t_sample  # trajectory discretization time interval
-
-        # Initial conditions [m],[m/s],[m/s^2]
-        self.p_0 = p_0
-        self.v_0 = np.zeros(params.N_DIM)
-        self.a_0 = np.zeros(params.N_DIM)
-
-        self.theta_0 = 0  # Initial heading, 0 is along x-axis, positive is CCW, -pi to pi
+    def __init__(self):
 
         # Goal position [m]
         self.p_goal = np.zeros(params.N_DIM)
@@ -101,7 +90,7 @@ class DubinsPlanner:
         return False
 
 
-    def traj_opt_sample(self, t_start_plan):
+    def traj_opt_sample(self, init_pose, t_start_plan):
         """Sampling-based Trajectory Optimization
 
         Attempt to find a collision-free plan (v_peak) which brings the agent 
@@ -122,7 +111,7 @@ class DubinsPlanner:
         u_samples = rand_in_bounds([-params.V_MAX, params.V_MAX, -params.W_MAX, params.W_MAX], params.N_PLAN_MAX)
         endpoints = np.zeros((params.N_PLAN_MAX, 2))
         for i, u in enumerate(u_samples):
-            traj = dubins_traj(self.p_0, u, params.TRAJ_IDX_LEN, params.DT)
+            traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
             endpoints[i] = traj[-1,:-1]
 
         dists = np.linalg.norm(endpoints - self.p_goal, axis=1)
@@ -131,7 +120,7 @@ class DubinsPlanner:
 
         # Check collisions
         for u in u_samples_sorted:
-            traj = dubins_traj(self.p_0, u, params.TRAJ_IDX_LEN, params.DT)
+            traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
             if self.check_collisions(traj):
                 continue
             else:
@@ -142,17 +131,16 @@ class DubinsPlanner:
         return None
 
 
-    def replan(self, initial_conditions):
+    def replan(self, init_pose):
         """Replan
         
         Periodically called to perform trajectory optimization.
         
         """
         t_start_plan = time.time()
+        traj = None
 
-        # Find a new v_peak
-        # TODO: set init_pose
-        init_pose = self.odom
+        # Find a new plan
         u = self.traj_opt(init_pose, t_start_plan)
 
         if u is None:
@@ -162,14 +150,13 @@ class DubinsPlanner:
             # Generate new trajectory
             traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
 
-            # Update initial conditions for next replanning instance
-            self.p_0 = traj[params.NEXT_IC_IDX]
-
-            print("Found new trajectory, u = " + str(np.round(u, 2)))
-            print(" Start point: " + str(np.round(traj[0], 2)))
-            print(" End point: " + str(np.round(traj[-1], 2)))
+            # print("Found new trajectory, u = " + str(np.round(u, 2)))
+            # print(" Start point: " + str(np.round(traj[0], 2)))
+            # print(" End point: " + str(np.round(traj[-1], 2)))
         
-            # Check for goal-reached
-            if np.linalg.norm(traj[-1,:-1] - self.p_goal) < params.R_GOAL_REACHED:
-                print("Goal reached")
-                self.done = True
+            # # Check for goal-reached
+            # if np.linalg.norm(traj[-1,:-1] - self.p_goal) < params.R_GOAL_REACHED:
+            #     print("Goal reached")
+            #     self.done = True
+
+        return traj
