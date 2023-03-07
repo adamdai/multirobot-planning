@@ -362,7 +362,7 @@ class Zonotope(object):
         poly = Polygon(V.T, closed=True, fill=True, color=color, alpha=alpha)
         poly_edge = Polygon(V.T, closed=True, fill=False, color=color, alpha=line_alpha)
         ax.add_patch(poly)
-        ax.add_patch(poly_edge)
+        #ax.add_patch(poly_edge)
 
         # Recompute the ax.dataLim
         ax.relim()
@@ -389,6 +389,9 @@ def cov_to_zonotope(cov, P=0.997, c=None):
         Zonotope object
 
     """
+    if c is None:
+        c = np.zeros(cov.shape[0])
+
     Q = -2 * np.log(1 - P) * cov
     Tinv = sqrtm(Q)
 

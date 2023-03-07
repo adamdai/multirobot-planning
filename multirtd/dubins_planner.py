@@ -6,10 +6,13 @@ This module defines the SimplePlanner class.
 
 import numpy as np
 import time 
+from scipy.optimize import minimize, NonlinearConstraint
 
 import multirtd.params as params
 from multirtd.LPM import LPM
-import multirtd.utils as utils
+from multirtd.utils import rand_in_bounds, check_obs_collision
+
+from multirtd.dubins_model import dubins_traj
 
 
 class DubinsPlanner:
@@ -45,27 +48,7 @@ class DubinsPlanner:
         self.obstacles = []
 
 
-    def check_obstacle_collisions(self, positions):
-        """ Check a sequence of positions against the current list of nearby obstacles for collision.
-
-        Parameters
-        ----------
-        positions : np.array
-            Trajectory positions to check against obstacles.
-
-        Returns
-        -------
-        bool
-            True if plan is safe, False if there is a collision.
-
-        """
-        for obs in self.obstacles:
-            if not utils.check_obs_collision(positions, obs, 2*params.R_BOT):
-                return False
-        return True
-
-
-    def traj_opt(self, t_start_plan):
+    def traj_opt(self, init_pose, t_start_plan):
         """Trajectory Optimization
 
         Attempt to find a collision-free plan (v_peak) which brings the agent 
@@ -82,80 +65,111 @@ class DubinsPlanner:
             Optimal v_peak or None if failed to find one
         
         """
+        def cost(u):
+            traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
+            dist = np.linalg.norm(traj[-1,:-1] - self.p_goal)
+            return dist
 
-        # Generate potential v_peak samples
-        V_peak = utils.rand_in_bounds(params.V_BOUNDS, params.N_PLAN_MAX)
-        # Eliminate samples that exceed the max velocity and max delta from initial velocity
-        V_peak = utils.prune_vel_samples(V_peak, self.v_0, params.V_MAX_NORM, params.DELTA_V_PEAK_MAX)
+        def constraint(u):
+            traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
+            dists = []
+            for obs_c, obs_r in self.obstacles:
+                dist = np.linalg.norm(traj[:,:-1] - obs_c, axis=1) - (obs_r + params.R_BOT)
+                dists.append(dist)
+            for peer in self.peer_traj:
+                dist = np.linalg.norm(traj[:,:-1] - self.peer_traj[peer][:,:-1], axis=1) - (2 * params.R_BOT)
+                dists.append(dist)
+            return np.hstack(dists)
 
-        # Calculate the endpoints for the sample v_peaks
-        P_endpoints = self.LPM.compute_endpoints(self.v_0, self.a_0, V_peak) + self.p_0
+        start_time = time.time()
+        cons = NonlinearConstraint(constraint, 0, np.inf)
+        u0 = rand_in_bounds([-params.V_MAX, params.V_MAX, -params.W_MAX, params.W_MAX], 1)[0]
+        res = minimize(cost, np.array([0, 0]), method='SLSQP', bounds=[(-params.V_MAX, params.V_MAX), (-params.W_MAX, params.W_MAX)], constraints=cons, 
+                    options={'disp': False,
+                             'ftol': 1e-6})
+        print("Time elapsed: {:.3f} s".format(time.time() - start_time))
+        print(res.x)
+        return res.x
+
+    
+    def check_collisions(self, traj):
+        """Check if the trajectory collides with any obstacles."""
+        for obs_c, obs_r in self.obstacles:
+            dist = np.linalg.norm(traj[:,:-1] - obs_c, axis=1)
+            if np.any(dist < obs_r):
+                return True
+        return False
+
+
+    def traj_opt_sample(self, t_start_plan):
+        """Sampling-based Trajectory Optimization
+
+        Attempt to find a collision-free plan (v_peak) which brings the agent 
+        closest to its goal.
+
+        Parameters
+        ----------
+        t_start_plan : float
+            Time at which planning started for this iteration
+
+        Returns
+        -------
+        np.array or None
+            Optimal v_peak or None if failed to find one
         
-        # Sort V_peaks by distance to goal
-        dist_to_goal = np.linalg.norm(P_endpoints - self.p_goal, axis=1)
-        V_sort_idxs = np.argsort(dist_to_goal)
-        V_peak = V_peak[V_sort_idxs]
+        """
+        start_time = time.time()
+        u_samples = rand_in_bounds([-params.V_MAX, params.V_MAX, -params.W_MAX, params.W_MAX], params.N_PLAN_MAX)
+        endpoints = np.zeros((params.N_PLAN_MAX, 2))
+        for i, u in enumerate(u_samples):
+            traj = dubins_traj(self.p_0, u, params.TRAJ_IDX_LEN, params.DT)
+            endpoints[i] = traj[-1,:-1]
 
-        # Iterate through V_peaks until we find a feasible one
-        for i in range(len(V_peak)):
-        
-            # Get candidate trajectory positions for current v_peak
-            v_peak = V_peak[i]
-            k = np.vstack((self.v_0, self.a_0, v_peak))
-            cand_traj = self.LPM.compute_positions(k) + self.p_0
+        dists = np.linalg.norm(endpoints - self.p_goal, axis=1)
+        sort_idxs = np.argsort(dists)
+        u_samples_sorted = u_samples[sort_idxs]
 
-            # check against obstacles
-            check_obs = self.check_obstacle_collisions(cand_traj)
-
-            if check_obs:
-                return v_peak
-
-            if (time.time() - t_start_plan > params.T_PLAN):
-                print("Ran out of time for planning, idx = ", i)
-                break
-
-        # No v_peaks are feasible (or we ran out of time)
+        # Check collisions
+        for u in u_samples_sorted:
+            traj = dubins_traj(self.p_0, u, params.TRAJ_IDX_LEN, params.DT)
+            if self.check_collisions(traj):
+                continue
+            else:
+                print("found plan ", u)
+                print("Time elapsed: {:.3f} s".format(time.time() - start_time))
+                return u
+        print("No feasible plan found")
         return None
 
 
     def replan(self, initial_conditions):
         """Replan
-
+        
         Periodically called to perform trajectory optimization.
-
-        Parameters
-        ----------
-        initial_conditions : Tuple
-
-
-        Returns
-        -------
         
         """
         t_start_plan = time.time()
 
-        # Update initial conditions
-        self.p_0, self.v_0, self.a_0 = initial_conditions
-
-        self.theta_0 = np.arctan2(self.v_0[1], self.v_0[0])
-
         # Find a new v_peak
-        v_peak = self.traj_opt(t_start_plan)
+        # TODO: set init_pose
+        init_pose = self.odom
+        u = self.traj_opt(init_pose, t_start_plan)
 
-        if v_peak is None:
+        if u is None:
             # Failed to find new plan
-            return None
+            print("Failed to find new plan")
         else:
             # Generate new trajectory
-            k = np.vstack((self.v_0, self.a_0, v_peak))
-            P,V,A = self.LPM.compute_trajectory(k)
-            P = P + self.p_0  # translate to p_0
+            traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
 
-            
-            speed = np.linalg.norm(v_peak)
-            #theta = utils.signed_angle_btwn_vectors(self.v_0, v_peak)
-            theta_pk = np.arctan2(v_peak[1], v_peak[0])
-            dtheta = (theta_pk - self.theta_0) / params.T_PK
-            print("v = ", speed)
-            print("dtheta = ", dtheta)
-            return P,V,A, speed, dtheta
+            # Update initial conditions for next replanning instance
+            self.p_0 = traj[params.NEXT_IC_IDX]
+
+            print("Found new trajectory, u = " + str(np.round(u, 2)))
+            print(" Start point: " + str(np.round(traj[0], 2)))
+            print(" End point: " + str(np.round(traj[-1], 2)))
+        
+            # Check for goal-reached
+            if np.linalg.norm(traj[-1,:-1] - self.p_goal) < params.R_GOAL_REACHED:
+                print("Goal reached")
+                self.done = True
