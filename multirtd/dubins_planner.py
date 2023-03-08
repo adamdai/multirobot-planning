@@ -65,9 +65,9 @@ class DubinsPlanner:
             for obs_c, obs_r in self.obstacles:
                 dist = np.linalg.norm(traj[:,:-1] - obs_c, axis=1) - (obs_r + params.R_BOT)
                 dists.append(dist)
-            for peer in self.peer_traj:
-                dist = np.linalg.norm(traj[:,:-1] - self.peer_traj[peer][:,:-1], axis=1) - (2 * params.R_BOT)
-                dists.append(dist)
+            # for peer in self.peer_traj:
+            #     dist = np.linalg.norm(traj[:,:-1] - self.peer_traj[peer][:,:-1], axis=1) - (2 * params.R_BOT)
+            #     dists.append(dist)
             return np.hstack(dists)
 
         start_time = time.time()
@@ -76,8 +76,8 @@ class DubinsPlanner:
         res = minimize(cost, np.array([0, 0]), method='SLSQP', bounds=[(-params.V_MAX, params.V_MAX), (-params.W_MAX, params.W_MAX)], constraints=cons, 
                     options={'disp': False,
                              'ftol': 1e-6})
-        print("Time elapsed: {:.3f} s".format(time.time() - start_time))
-        print(res.x)
+        # print("Time elapsed: {:.3f} s".format(time.time() - start_time))
+        # print(res.x)
         return res.x
 
     
@@ -85,7 +85,7 @@ class DubinsPlanner:
         """Check if the trajectory collides with any obstacles."""
         for obs_c, obs_r in self.obstacles:
             dist = np.linalg.norm(traj[:,:-1] - obs_c, axis=1)
-            if np.any(dist < obs_r):
+            if np.any(dist < obs_r + params.R_BOT):
                 return True
         return False
 
@@ -108,7 +108,7 @@ class DubinsPlanner:
         
         """
         start_time = time.time()
-        u_samples = rand_in_bounds([-params.V_MAX, params.V_MAX, -params.W_MAX, params.W_MAX], params.N_PLAN_MAX)
+        u_samples = rand_in_bounds([0, params.V_MAX, -params.W_MAX, params.W_MAX], params.N_PLAN_MAX)
         endpoints = np.zeros((params.N_PLAN_MAX, 2))
         for i, u in enumerate(u_samples):
             traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
@@ -124,8 +124,8 @@ class DubinsPlanner:
             if self.check_collisions(traj):
                 continue
             else:
-                print("found plan ", u)
-                print("Time elapsed: {:.3f} s".format(time.time() - start_time))
+                # print("found plan ", u)
+                # print("Time elapsed: {:.3f} s".format(time.time() - start_time))
                 return u
         print("No feasible plan found")
         return None

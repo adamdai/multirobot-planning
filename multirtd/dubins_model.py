@@ -5,21 +5,21 @@
 import numpy as np
 from sympy import symbols, lambdify, Array, sin, cos, diff
 
+import multirtd.params as params
+
 
 # Generate symbolic dynamics
 x, y, th, v, w = symbols('x y th v w')
 
-dt = 0.1
-N = 15
 x0 = Array([x, y, th])
 expr = x0
-for i in range(N):
-    expr = expr + dt * Array([v*cos(expr[2]), v*sin(expr[2]), w])
+for i in range(params.TRAJ_IDX_LEN):
+    expr = expr + params.DT * Array([v*cos(expr[2]), v*sin(expr[2]), w])
 
 dubins = lambdify([x, y, th, v, w], expr)
 
 
-def dubins_step(x, u, dt, sigma=np.zeros((3, 3))):
+def dubins_step(x, u, dt):
     """Run one step of dynamics
 
     Parameters
@@ -40,7 +40,7 @@ def dubins_step(x, u, dt, sigma=np.zeros((3, 3))):
     x_dot = u[0] * np.cos(x[2])
     y_dot = u[0] * np.sin(x[2])
     theta_dot = u[1]
-    x_new = x + np.array([x_dot, y_dot, theta_dot]) * dt + np.random.multivariate_normal(np.zeros(3), sigma)
+    x_new = x + np.array([x_dot, y_dot, theta_dot]) * dt
     return x_new
 
 
@@ -54,15 +54,17 @@ def dubins_step_new(x, u, dt):
         return x + np.array([dx, dy, dtheta])
     
 
-def dubins_traj(x0, U, dt, sigma=np.zeros((3, 3))):
+def dubins_traj(x0, u, N, dt):
     """Compute dubins trajectory from a sequence of controls
     
     Parameters
     ----------
     x0 : np.array
         Initial state vector (x, y, theta)
-    U : np.array
-        Control sequence (v, w)
+    u : np.array (2)
+        Control input (v, w)
+    N : int
+        Number of steps
     dt : float
         Time step
     
@@ -72,10 +74,10 @@ def dubins_traj(x0, U, dt, sigma=np.zeros((3, 3))):
         Trajectory (x, y, theta)
     
     """
-    traj = np.zeros((len(U), 3))
+    traj = np.zeros((N, 3))
     traj[0] = x0
-    for i in range(1, len(U)):
-        traj[i] = dubins_step(traj[i-1], U[i-1], dt, sigma)
+    for i in range(1, N):
+        traj[i] = dubins_step(traj[i-1], u, dt)
     return traj
 
 
