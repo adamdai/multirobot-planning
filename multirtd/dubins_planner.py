@@ -20,6 +20,8 @@ class DubinsPlanner:
 
     Modified linear planner for dubin's vehicle
 
+    traj_opt_sample: sample v and w uniformly offline. at runtime shift to robot frame
+
     Attributes
     ----------
 
@@ -109,17 +111,22 @@ class DubinsPlanner:
         """
         start_time = time.time()
         u_samples = rand_in_bounds([0, params.V_MAX, -params.W_MAX, params.W_MAX], params.N_PLAN_MAX)
+        #traj_samples = np.zeros((params.N_PLAN_MAX, params.TRAJ_IDX_LEN, 3))
         endpoints = np.zeros((params.N_PLAN_MAX, 2))
         for i, u in enumerate(u_samples):
+            #traj_samples[i,:,:] = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
             traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
             endpoints[i] = traj[-1,:-1]
 
+        #endpoints = traj_samples[:,-1,:-1]
         dists = np.linalg.norm(endpoints - self.p_goal, axis=1)
         sort_idxs = np.argsort(dists)
         u_samples_sorted = u_samples[sort_idxs]
+        #traj_samples_sorted = traj_samples[sort_idxs]
 
         # Check collisions
-        for u in u_samples_sorted:
+        for i, u in enumerate(u_samples_sorted):
+            #traj = traj_samples_sorted[i]
             traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
             if self.check_collisions(traj):
                 continue

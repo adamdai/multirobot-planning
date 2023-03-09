@@ -6,6 +6,7 @@ import numpy as np
 from sympy import symbols, lambdify, Array, sin, cos, diff
 
 import multirtd.params as params
+from multirtd.dubins_reachability import dlqr_calculate
 
 
 # Generate symbolic dynamics
@@ -89,6 +90,21 @@ def dubins_traj_new(x0, U, dt):
     return traj
 
 
+def dubins_traj_fast(x0, u, N, dt):
+    """Sample points along an arc of length vT and angle wT"""
+    T = N * dt
+    r = u[0] / u[1]
+    angles = np.linspace(0, u[1] * T, N)
+    # In robot local frame
+    x = r * np.sin(angles)
+    y = -r * (1 - np.cos(angles))
+    # Rotate and translate to global frame
+    x_global = x * np.cos(x0[2]) - y * np.sin(x0[2]) + x0[0]
+    y_global = x * np.sin(x0[2]) + y * np.cos(x0[2]) + x0[1]
+    theta = np.linspace(x0[2], x0[2] + u[1] * T, N)
+    return np.stack([x_global, y_global, theta], axis=1)
+
+
 def linearize_dynamics(x, u, dt):
     """Linearize dynamics around a point
 
@@ -166,6 +182,60 @@ class RangeSensor:
         self.sigma = sigma
 
 
+
+class PositionSensor:
+    """Position sensor class
+    
+    """
+    def __init__(self, n, sigma):
+        self.n = n                # Position dimension (i.e. 2D or 3D)
+        self.sigma = sigma        # Measurement noise
+                                  # - for now, assumes same sigma across dimensions
+    
+    def get_measurement(self, x):
+        return x[:self.n] + np.random.normal(0, self.sigma, self.n)
+
+    def linearize(self, x):
+        H = np.zeros((self.n, len(x)))
+        H[:self.n, :self.n] = np.eye(self.n)
+        return H
+    
+
+class LQRController:
+    """LQR controller class
+    
+    """
+    def __init__(self, K):
+        self.K = K
+    
+    def get_control(self, x):
+        return -np.dot(self.K, x)
+    
+
+class DubinsDynamics:
+    """Dubins dynamics class
+    
+    """
+    def __init__(self, dt):
+        self.dt = dt
+    
+    def step(self, x, u):
+        return dubins_step(x, u, self.dt)
+    
+    def linearize(self, x, u):
+        return linearize_dynamics(x, u, self.dt)
+    
+
+"""
+Robot:
+    Dynamics
+    Sensor
+    Controller(Dynamics)
+    Estimator(Dynamics, Sensor)
+
+"""
+
+
 class Turtlebot:
     """Turtlebot class
     
@@ -193,6 +263,8 @@ class Turtlebot:
         self.sigma = 0.0  # assume same sigma for left and right wheel speeds
         self.wheelbase = 0.1  # [m]
 
+        self.traj_idx = 0  # index of current trajectory point
+
         # Linear transformation from control to left and right wheel speeds
         self.u_to_lr = np.array([[1, -self.wheelbase / 2],
                                  [1,  self.wheelbase / 2]])
@@ -203,6 +275,11 @@ class Turtlebot:
         self.estimator = estimator
 
 
+    def clear_history(self):
+        self.x_hist = [self.x]
+
+
+    # Open-loop
     def step(self, u):
         """Step forward dynamics
 
@@ -216,6 +293,69 @@ class Turtlebot:
         self.x = diff_drive_step(self.x, v_lr[0], v_lr[1], self.sigma, self.wheelbase, self.dt)
         self.x_hist.append(self.x)
 
+
+    # Closed-loop
+    def track(self, x_nom, u_nom):
+        """Track a nominal trajectory
+        
+        """
+        # FIXME: move the LQR stuff to the controller class
+        Q_lqr = np.eye(3)
+        R_lqr = np.eye(2)
+
+        i = self.traj_idx 
+        x_est = self.estimator.x
+
+        Q_motion = self.sigma**2 * np.eye(2)
+        R_sense = self.sensor.sigma**2 * np.eye(4)
+
+        # Linearize
+        A, B = self.linearize(self.x, u)
+        C = self.noise_matrix(self.x)
+        H = self.sensor.linearize(self.x)
+
+        # True dynamics
+        K = dlqr_calculate(A, B, Q_lqr, R_lqr)
+        u = u_nom[i] + K @ (x_nom[i] - x_est)
+        v_lr = self.u_to_lr @ u
+        self.x = diff_drive_step(self.x, v_lr[0], v_lr[1], self.sigma, self.wheelbase, self.dt)
+        self.x_hist.append(self.x)
+
+        # Measurement
+        z = self.sensor.get_measurement(self.x)
+
+        # Estimate
+        # TODO: move this to the estimator class
+        x_est = diff_drive_step(x_est, v_lr[0], v_lr[1], self.sigma, self.wheelbase, self.dt)
+        P = A @ P @ A.T + C @ Q_motion @ C.T
+        # Update step
+        # H = get_beacon_jacobian(x_est, beacon_positions)
+        K = P @ H.T @ np.linalg.inv(H @ P @ H.T + R_sense)
+        x_est = x_est + K @ (z - self.sensor.get_measurement(x_est))
+        P = (np.eye(P.shape[0]) - K @ H) @ P
+
+
+    
+    def noise_matrix(self, x):
+        """
+        Generate matrix C for process noise
+
+        x_{t+1} = f(x_t, u_t) + C * w_t
+        TODO: check this explanation
+
+        """
+        C = np.array([[0.5 * self.dt * np.cos(x[2]), 0.5 * self.dt * np.cos(x[2])], 
+                      [0.5 * self.dt * np.sin(x[2]), 0.5 * self.dt * np.sin(x[2])], 
+                      [-self.dt / self.wheelbase, self.dt /self.wheelbase]])
+        return C
+
     
     def linearize(self, x, u):
         """ """
+        G_x = np.array([[1, 0, -u[0] * np.sin(x[2]) * self.dt],
+                        [0, 1,  u[0] * np.cos(x[2]) * self.dt],
+                        [0, 0, 1]])
+        G_u = np.array([[np.cos(x[2]) * self.dt, -0.5 * u[0] * self.dt**2 * np.sin(x[2])],
+                        [np.sin(x[2]) * self.dt,  0.5 * u[0] * self.dt**2 * np.cos(x[2])],
+                        [0, self.dt]])
+        return G_x, G_u
