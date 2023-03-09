@@ -200,3 +200,20 @@ def plot_ellipse(ax, c, Sigma, conf=0.95):
     width, height = 2 * np.sqrt(s) * np.sqrt(vals)
     ellip = Ellipse(xy=c, width=width, height=height, angle=theta, alpha=0.5)
     ax.add_artist(ellip)
+
+
+def rot_mat_2D(theta):
+    """2D rotation matrix
+    
+    Parameters
+    ----------
+    theta : float
+        Rotation angle in radians
+    
+    Returns
+    -------
+    np.array
+        2D rotation matrix
+    """
+    return np.array([[np.cos(theta), -np.sin(theta)],
+                     [np.sin(theta), np.cos(theta)]])
