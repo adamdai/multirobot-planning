@@ -6,7 +6,8 @@ from scipy.linalg import sqrtm
 
 from multirtd.utils import remove_zero_columns
 
-class Zonotope(object):
+
+class Zonotope:
     """ Zonotope class
 
     Attributes

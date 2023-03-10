@@ -1,10 +1,12 @@
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from scipy.stats import chi2
 
-from multirtd.LPM import LPM
+from multirtd.dynamics.LPM import LPM
 import multirtd.params as params
+
 
 class Trajectory:
     """Trajectory class
@@ -217,3 +219,18 @@ def rot_mat_2D(theta):
     """
     return np.array([[np.cos(theta), -np.sin(theta)],
                      [np.sin(theta), np.cos(theta)]])
+
+
+def plot_trajectory(ax, traj, color='b'):
+    """Plot a (2D) trajectory
+    
+    Parameters
+    ----------
+    ax : matplotlib.axes._subplots.AxesSubplot
+        Axes to plot on
+    traj : np.array
+        Trajectory to plot
+    """
+    ax.plot(traj[:,0], traj[:,1], color=color)
+    # ax.plot(traj[0,0], traj[0,1], 'go')
+    # ax.plot(traj[-1,0], traj[-1,1], 'ro')

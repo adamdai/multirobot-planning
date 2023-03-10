@@ -6,7 +6,7 @@ import numpy as np
 from sympy import symbols, lambdify, Array, sin, cos, diff
 
 import multirtd.params as params
-from multirtd.dubins_reachability import dlqr_calculate
+from multirtd.reachability.dubins_reachability import dlqr_calculate
 
 
 # Generate symbolic dynamics
@@ -212,15 +212,36 @@ class LQRController:
         return -np.dot(self.K, x)
     
 
-class DubinsDynamics:
-    """Dubins dynamics class
+class DiffDriveDynamics:
+    """Differential Drive dynamics class
     
     """
     def __init__(self, dt):
-        self.dt = dt
+        # Parameters
+        self.dt = 0.1  # [s]
+        self.sigma = 0.0  # assume same sigma for left and right wheel speeds
+        self.wheelbase = 0.1  # [m]
+
+        # State
+        self.x = x0  # [x, y, theta]
+        self.x_hist = [x0]
+
+        # Linear transformation from control to left and right wheel speeds
+        self.u_to_lr = np.array([[1, -self.wheelbase / 2],
+                                 [1,  self.wheelbase / 2]])
     
     def step(self, x, u):
-        return dubins_step(x, u, self.dt)
+        """Step forward dynamics
+
+        Parameters
+        ----------
+        u : np.array
+            Control vector (v, w)
+
+        """
+        v_lr = self.u_to_lr @ u
+        self.x = diff_drive_step(self.x, v_lr[0], v_lr[1], self.sigma, self.wheelbase, self.dt)
+        self.x_hist.append(self.x)
     
     def linearize(self, x, u):
         return linearize_dynamics(x, u, self.dt)
@@ -253,7 +274,7 @@ class Turtlebot:
 
     """
 
-    def __init__(self, x0=np.zeros(3), sensor=None, controller=None, estimator=None):
+    def __init__(self, x0=np.zeros(3), dynamics=None, sensor=None, controller=None, estimator=None):
         # State
         self.x = x0  # [x, y, theta]
         self.x_hist = [x0]

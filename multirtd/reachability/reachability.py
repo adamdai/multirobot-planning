@@ -5,7 +5,7 @@
 import numpy as np
 
 import multirtd.params as params
-from multirtd.zonotope import Zonotope
+from multirtd.reachability.zonotope import Zonotope
 from multirtd.utils import remove_zero_columns
 
 

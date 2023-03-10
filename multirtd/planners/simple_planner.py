@@ -1,17 +1,21 @@
+"""SimplePlanner class
+
+This module defines the SimplePlanner class.
+
+"""
+
 import numpy as np
 import time 
 
 import multirtd.params as params
-from multirtd.LPM import LPM
+from multirtd.dynamics.LPM import LPM
 import multirtd.utils as utils
-from multirtd.zonotope import Zonotope  
-from multirtd.reachability import compute_FRS, generate_collision_constraints_FRS, check_collision_constraints, generate_collision_constraints_agents
 
 
-class RTD_Planner:
-    """RTD Planner class
+class Simple_Planner:
+    """Simple Planner class
 
-    Reachability-based Trajectory Design planner which recomputes collision-free trajectories to follow 
+    Simple Trajectory planner which recomputes collision-free trajectories to follow 
     in a receding-horizon fashion.
 
     Trajectory: time-indexed positions, velocities, accelerations
@@ -26,18 +30,6 @@ class RTD_Planner:
     """
 
     def __init__(self, lpm_file, p_0):
-        """Constructor
-        
-        Parameters
-        ----------
-        lpm_file : str
-            File name for linear planning model 
-        p_0 : np.array (N_DIM x 1)
-            Initial position
-        map : Scan
-            Current map of environment
-
-        """
         # Initialize LPM object
         self.LPM = LPM(lpm_file)
         self.N_T_PLAN = len(self.LPM.time)  # planned trajectory length
@@ -57,18 +49,33 @@ class RTD_Planner:
 
         # Obstacles
         self.obstacles = []
-        
-        # Friendly Agents
-        self.agents = []
-        
 
-    def traj_opt(self, A_con, b_con, t_start_plan):
-        """Trajectory optimization (using sampling)
+
+    def check_obstacle_collisions(self, positions):
+        """ Check a sequence of positions against the current list of nearby obstacles for collision.
+
+        Parameters
+        ----------
+        positions : np.array
+            Trajectory positions to check against obstacles.
+
+        Returns
+        -------
+        bool
+            True if plan is safe, False if there is a collision.
+
+        """
+        for obs in self.obstacles:
+            if not utils.check_obs_collision(positions, obs, 2*params.R_BOT):
+                return False
+        return True
+
+
+    def traj_opt(self, t_start_plan):
+        """Trajectory Optimization
 
         Attempt to find a collision-free plan (v_peak) which brings the agent 
         closest to its goal.
-
-        Sampling-based method.
 
         Parameters
         ----------
@@ -81,6 +88,7 @@ class RTD_Planner:
             Optimal v_peak or None if failed to find one
         
         """
+
         # Generate potential v_peak samples
         V_peak = utils.rand_in_bounds(params.V_BOUNDS, params.N_PLAN_MAX)
         # Eliminate samples that exceed the max velocity and max delta from initial velocity
@@ -99,20 +107,13 @@ class RTD_Planner:
         
             # Get candidate trajectory positions for current v_peak
             v_peak = V_peak[:,i][:,None]
-            # k = np.hstack((self.v_0, self.a_0, v_peak))
-            # cand_traj = self.LPM.compute_positions(k) + self.p_0
+            k = np.hstack((self.v_0, self.a_0, v_peak))
+            cand_traj = self.LPM.compute_positions(k) + self.p_0
 
-            # Check against obstacles
-            # start_time = time.time()
-            # check_collision = self.check_map_collisions(cand_traj)
-            #print("check map collision time: ", time.time() - start_time)
-            # TODO: update check collisions
-            check_collision = check_collision_constraints(A_con, b_con, v_peak)
-            
-            # TODO: Check inter-agent collisions
+            # check against obstacles
+            check_obs = self.check_obstacle_collisions(cand_traj)
 
-            if check_collision:
-                #print("v_peak: ", v_peak, " idx = ", i)
+            if check_obs:
                 return v_peak
 
             if (time.time() - t_start_plan > params.T_PLAN):
@@ -120,9 +121,8 @@ class RTD_Planner:
                 break
 
         # No v_peaks are feasible (or we ran out of time)
-        print("No solution found.")
         return None
-        
+
 
     def replan(self, initial_conditions):
         """Replan
@@ -143,20 +143,8 @@ class RTD_Planner:
         # Update initial conditions
         self.p_0, self.v_0, self.a_0 = initial_conditions
 
-        # Compute FRS from initial conditions
-        FRS = compute_FRS(self.LPM, self.p_0, self.v_0, self.a_0)
-
-        # Generate collision constraints
-        # NOTE: For now, only generate constraints for final element of FRS
-        #nearby_obs = [self.zono_map[i] for i in self.get_nearby_obs_idxs()]
-        #A_con, b_con = generate_collision_constraints(FRS[-1], nearby_obs)
-        A_con, b_con = generate_collision_constraints_FRS(FRS, self.obstacles)
-        A_con2, b_con2 = generate_collision_constraints_agents(FRS, self.agents)
-        A_con = A_con + A_con2
-        b_con = b_con + b_con2
-
         # Find a new v_peak
-        v_peak = self.traj_opt(A_con, b_con, t_start_plan)
+        v_peak = self.traj_opt(t_start_plan)
 
         if v_peak is None:
             # Failed to find new plan
@@ -167,11 +155,4 @@ class RTD_Planner:
             P,V,A = self.LPM.compute_trajectory(k)
             P = P + self.p_0  # translate to p_0
 
-            # Slice FRS by v_peak
-            FRS_slc = []
-            for frs in FRS[1:]:
-                FRS_slc.append(frs.slice(params.K_DIM, v_peak))
-
-            # TODO: Publish FRS to other agents
-
-            return P,V,A, FRS_slc
+            return P,V,A

@@ -9,10 +9,8 @@ import time
 from scipy.optimize import minimize, NonlinearConstraint
 
 import multirtd.params as params
-from multirtd.LPM import LPM
 from multirtd.utils import rand_in_bounds, rot_mat_2D
-
-from multirtd.dubins_model import dubins_traj
+from multirtd.dynamics.dubins_model import dubins_traj
 
 
 class DubinsPlanner:
