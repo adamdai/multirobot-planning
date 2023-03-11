@@ -45,6 +45,10 @@ class DiffDriveDynamics:
             Distance between wheels [m]
 
         """
+        # Constants
+        self.N_dim = 3  # state dimension
+        self.N_ctrl = 2  # control dimension
+
         # Parameters
         self.dt = dt  # [s]
         self.sigma = sigma  # assume same sigma for left and right wheel speeds
@@ -53,6 +57,11 @@ class DiffDriveDynamics:
         # Linear transformation from control to left and right wheel speeds
         self.u_to_lr = np.array([[1, -self.wheelbase / 2],
                                  [1,  self.wheelbase / 2]])
+
+        # Linearized dynamics matrices (updated when linearize() is called)
+        self.A = None
+        self.B = None
+        self.C = None
     
 
     def step(self, x, u, sigma=None):
@@ -84,6 +93,8 @@ class DiffDriveDynamics:
         G_u = np.array([[np.cos(x[2]) * self.dt, -0.5 * u[0] * self.dt**2 * np.sin(x[2])],
                         [np.sin(x[2]) * self.dt,  0.5 * u[0] * self.dt**2 * np.cos(x[2])],
                         [0, self.dt]])
+        self.A = G_x
+        self.B = G_u
         return G_x, G_u
 
     
@@ -94,10 +105,13 @@ class DiffDriveDynamics:
         x_{t+1} = f(x_t, u_t) + C * w_t
         TODO: check this explanation
 
+        This matrix transforms left/right wheel speed noise in R^2 to state noise in R^3
+
         """
         C = np.array([[0.5 * self.dt * np.cos(x[2]), 0.5 * self.dt * np.cos(x[2])], 
                       [0.5 * self.dt * np.sin(x[2]), 0.5 * self.dt * np.sin(x[2])], 
                       [-self.dt / self.wheelbase, self.dt /self.wheelbase]])
+        self.C = C
         return C
     
 

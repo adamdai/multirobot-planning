@@ -221,16 +221,18 @@ def rot_mat_2D(theta):
                      [np.sin(theta), np.cos(theta)]])
 
 
-def plot_trajectory(ax, traj, color='b'):
-    """Plot a (2D) trajectory
+
+def plot_trajectory(ax, traj, **kwargs):
+    """Plot a trajectory
     
     Parameters
     ----------
-    ax : matplotlib.axes._subplots.AxesSubplot
+    ax : matplotlib.axes.Axes
         Axes to plot on
     traj : np.array
         Trajectory to plot
+    **kwargs : dict
+        Keyword arguments to pass to ax.plot()
+        
     """
-    ax.plot(traj[:,0], traj[:,1], color=color)
-    # ax.plot(traj[0,0], traj[0,1], 'go')
-    # ax.plot(traj[-1,0], traj[-1,1], 'ro')
+    ax.plot(traj[:,0], traj[:,1], **kwargs)

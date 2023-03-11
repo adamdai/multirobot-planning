@@ -13,6 +13,8 @@ class PositionSensor:
         self.n = n                # Position dimension (i.e. 2D or 3D)
         self.sigma = sigma        # Measurement noise
                                   # - for now, assumes same sigma across dimensions
+        self.H = None             # Linearized measurement model
+                                  
     
     def get_measurement(self, x, sigma=None):
         """Get measurement from state
@@ -31,7 +33,12 @@ class PositionSensor:
             sigma = self.sigma
         return x[:self.n] + np.random.normal(0, sigma, self.n)
 
+
     def linearize(self, x):
+        """Linearize measurement model
+        
+        """
         H = np.zeros((self.n, len(x)))
         H[:self.n, :self.n] = np.eye(self.n)
+        self.H = H
         return H
