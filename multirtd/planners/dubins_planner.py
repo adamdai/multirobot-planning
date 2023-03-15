@@ -138,6 +138,34 @@ class DubinsPlanner:
                 return u
         print("No feasible plan found")
         return None
+    
+
+    def traj_opt_reach(self, init_pose):
+        """Reachability-based trajectory optimization"""
+        # Transform samples to global frame using init_pose
+        traj_samples_global = self.traj_samples.copy()
+        traj_samples_global[:,:,0:2] = traj_samples_global[:,:,0:2] @ rot_mat_2D(init_pose[2]).T  # rotate
+        traj_samples_global += init_pose  # translate
+
+        endpoints = traj_samples_global[:,-1,:-1]
+        dists = np.linalg.norm(endpoints - self.p_goal, axis=1)
+        sort_idxs = np.argsort(dists)
+        u_samples_sorted = self.u_samples[sort_idxs]
+        traj_samples_sorted = traj_samples_global[sort_idxs]
+
+        # Check collisions
+        for i, u in enumerate(u_samples_sorted):
+            traj = traj_samples_sorted[i]
+            # TODO: compute FRS for trajectory
+            # TODO: collision check using FRS
+            if self.check_collisions(traj):
+                continue
+            else:
+                # print("found plan ", u)
+                # print("Time elapsed: {:.3f} s".format(time.time() - start_time))
+                return u
+        print("No feasible plan found")
+        return None
 
 
     def replan(self, init_pose):

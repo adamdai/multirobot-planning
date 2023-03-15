@@ -4,11 +4,13 @@
 
 import numpy as np
 
-from multirtd.reachability.dubins_reachability import dlqr_calculate
+from multirtd.reachability.dubins_reachability_shetty import dlqr_calculate
 
 
 class LQRController:
     """LQR controller class
+
+    Q and R are the cost matrices for the state and control inputs, respectively.
     
     """
     def __init__(self, dynamics, Q=None, R=None):
@@ -23,6 +25,14 @@ class LQRController:
             self.R = R
     
     
+    def compute_K(self):
+        # Assumes linearize() has been called previously for this state
+        A = self.dynamics.A
+        B = self.dynamics.B
+        K = dlqr_calculate(A, B, self.Q, self.R)
+        return K
+
+
     def get_control(self, u_nom, x_nom, x_est):
         """Get control input
         

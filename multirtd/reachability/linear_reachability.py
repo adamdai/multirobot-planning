@@ -335,3 +335,6 @@ def check_collision_constraints_vectorized(A_con, b_con, v_peak):
     c = np.min(c)
     
     return c > 0 
+
+
+

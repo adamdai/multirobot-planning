@@ -6,7 +6,7 @@ import numpy as np
 from sympy import symbols, lambdify, Array, sin, cos, diff
 
 import multirtd.params as params
-from multirtd.reachability.dubins_reachability import dlqr_calculate
+from multirtd.reachability.dubins_reachability_shetty import dlqr_calculate
 
 
 # Generate symbolic dynamics

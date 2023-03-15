@@ -30,12 +30,12 @@ class EKF:
         self.sensor = sensor
         # TODO: get Q from dynamics (by default)
         if Q is None:
-            self.Q = np.eye(dynamics.N_dim)
+            self.Q = dynamics.sigma**2 * np.eye(dynamics.N_dim)
         else:
             self.Q = Q
         # TODO: get R from sensor (by default)
         if R is None:
-            self.R = np.eye(sensor.n)
+            self.R = sensor.sigma**2 * np.eye(sensor.n)
         else:
             self.R = R
 

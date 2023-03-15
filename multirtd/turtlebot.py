@@ -27,18 +27,9 @@ class Turtlebot:
         self.x = x0  # [x, y, theta]
         self.x_hist = [x0]
 
-        # Parameters
-        self.dt = 0.1  # [s]
-        self.sigma = 0.0  # assume same sigma for left and right wheel speeds
-        self.wheelbase = 0.1  # [m]
-
         self.traj_idx = 0  # index of current trajectory point
 
-        # Linear transformation from control to left and right wheel speeds
-        self.u_to_lr = np.array([[1, -self.wheelbase / 2],
-                                 [1,  self.wheelbase / 2]])
-
-        # Optional components
+        self.dynamics = dynamics
         self.sensor = sensor
         self.controller = controller
         self.estimator = estimator
@@ -46,3 +37,26 @@ class Turtlebot:
 
     def clear_history(self):
         self.x_hist = [self.x]
+
+
+    def track(self, x_nom, u_nom):
+        """Track a nominal trajectory"""
+        N = len(u_nom)
+
+        for i in range(N):
+            # Linearize about nominal trajectory
+            self.dynamics.linearize(x_nom[i], u_nom[i])
+            self.dynamics.noise_matrix(x_nom[i])
+            self.sensor.linearize(x_nom[i])
+
+            # Control
+            u = self.controller.get_control(u_nom[i], x_nom[i], self.estimator.x_est)
+            self.x = self.dynamics.step(self.x, u)
+
+            # Measurement
+            z = self.sensor.get_measurement(self.x)
+            
+            # EKF
+            self.estimator.update(u, z)
+
+            self.x_hist.append(self.x)
