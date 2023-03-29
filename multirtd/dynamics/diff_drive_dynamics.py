@@ -48,6 +48,7 @@ class DiffDriveDynamics:
         # Constants
         self.N_dim = 3  # state dimension
         self.N_ctrl = 2  # control dimension
+        self.N_noise = 2  # noise dimension
 
         # Parameters
         self.dt = dt  # [s]

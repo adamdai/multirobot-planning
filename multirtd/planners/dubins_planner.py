@@ -175,7 +175,6 @@ class DubinsPlanner:
         
         """
         t_start_plan = time.time()
-        traj = None
 
         # Find a new plan
         u = self.traj_opt(init_pose, t_start_plan)
@@ -183,9 +182,11 @@ class DubinsPlanner:
         if u is None:
             # Failed to find new plan
             print("Failed to find new plan")
+            return None
         else:
             # Generate new trajectory
-            traj = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
+            x_nom = dubins_traj(init_pose, u, params.TRAJ_IDX_LEN, params.DT)
+            u_nom = np.tile(u, (params.TRAJ_IDX_LEN, 1))
 
             # print("Found new trajectory, u = " + str(np.round(u, 2)))
             # print(" Start point: " + str(np.round(traj[0], 2)))
@@ -196,4 +197,4 @@ class DubinsPlanner:
             #     print("Goal reached")
             #     self.done = True
 
-        return traj
+        return x_nom, u_nom

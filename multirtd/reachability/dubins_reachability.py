@@ -30,7 +30,7 @@ def RRBT(x_nom, u_nom, Sigma0, Qs, Rs, agent):
     Sigma = Sigma0  # state estimation covariance
     Lambda = np.zeros((3, 3))  # uncertainty from not having yet taken observations
 
-    RRBT_Sigmas = [Sigma0]
+    rrbt = [Sigma0]
 
     for i in range(1,N):        
         # Linearize about nominal trajectory
@@ -47,4 +47,6 @@ def RRBT(x_nom, u_nom, Sigma0, Qs, Rs, agent):
         Lambda = (A - B @ K) @ Lambda @ (A - B @ K).T + L @ H @ Sigma
         Sigma = Sigma - L @ H @ Sigma
 
-        RRBT_Sigmas.append(Sigma + Lambda)
+        rrbt.append(Sigma + Lambda)
+
+    return rrbt

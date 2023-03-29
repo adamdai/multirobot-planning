@@ -9,7 +9,7 @@ class EKF:
     """Extended Kalman Filter (EKF) class
     
     """
-    def __init__(self, dynamics, sensor, Q=None, R=None, C=None):
+    def __init__(self, dynamics, sensor, x_est0=None, P0=None, Q=None, R=None):
         """Initialize EKF
         
         Parameters
@@ -28,20 +28,48 @@ class EKF:
         """
         self.dynamics = dynamics
         self.sensor = sensor
-        # TODO: get Q from dynamics (by default)
+
         if Q is None:
-            self.Q = dynamics.sigma**2 * np.eye(dynamics.N_dim)
+            self.Q = dynamics.sigma**2 * np.eye(dynamics.N_noise)
         else:
             self.Q = Q
-        # TODO: get R from sensor (by default)
         if R is None:
             self.R = sensor.sigma**2 * np.eye(sensor.n)
         else:
             self.R = R
 
         # Initialize state estimate
-        self.x_est = np.zeros(dynamics.N_dim)
-        self.P = np.eye(dynamics.N_dim)
+        if x_est0 is None:
+            self.x_est = np.zeros(dynamics.N_dim)
+        else:
+            self.x_est = x_est0
+        if P0 is None:
+            self.P = np.eye(dynamics.N_dim)
+        else:
+            self.P = P0
+        self.x_est_hist = [self.x_est]
+        self.P_hist = [self.P]
+
+
+    def reset(self, x_est0=None, P0=None):
+        """Reset state estimate
+        
+        Parameters
+        ----------
+        x_est0 : np.array
+            Initial state estimate
+        P0 : np.array
+            Initial state estimate covariance
+        
+        """
+        if x_est0 is None:
+            self.x_est = np.zeros(self.dynamics.N_dim)
+        else:
+            self.x_est = x_est0
+        if P0 is None:
+            self.P = np.eye(self.dynamics.N_dim)
+        else:
+            self.P = P0
         self.x_est_hist = [self.x_est]
         self.P_hist = [self.P]
 

@@ -4,6 +4,10 @@
 
 import numpy as np
 
+from multirtd.dynamics.diff_drive_dynamics import DiffDriveDynamics
+from multirtd.sensors.position_sensor import PositionSensor
+from multirtd.controllers.lqr_controller import LQRController
+from multirtd.estimators.ekf import EKF
 
 class Turtlebot:
     """Turtlebot class
@@ -29,10 +33,32 @@ class Turtlebot:
 
         self.traj_idx = 0  # index of current trajectory point
 
-        self.dynamics = dynamics
-        self.sensor = sensor
-        self.controller = controller
-        self.estimator = estimator
+        if dynamics is not None:
+            self.dynamics = dynamics
+        else:
+            self.dynamics = DiffDriveDynamics(sigma=0.01)
+
+        if sensor is not None:
+            self.sensor = sensor
+        else:
+            self.sensor = PositionSensor(n=2, sigma=0.1)
+
+        if controller is not None:
+            self.controller = controller
+        else:
+            self.controller = LQRController(self.dynamics)
+        
+        if estimator is not None:
+            self.estimator = estimator
+        else:
+            self.estimator = EKF(self.dynamics, self.sensor, x_est0=x0, P0=0.1*np.eye(3))
+
+
+    def reset(self, x0, P0):
+        self.x = x0
+        self.x_hist = [x0]
+        self.traj_idx = 0
+        self.estimator.reset(x0, P0)
 
 
     def clear_history(self):
@@ -43,7 +69,7 @@ class Turtlebot:
         """Track a nominal trajectory"""
         N = len(u_nom)
 
-        for i in range(N):
+        for i in range(1, N):
             # Linearize about nominal trajectory
             self.dynamics.linearize(x_nom[i], u_nom[i])
             self.dynamics.noise_matrix(x_nom[i])
