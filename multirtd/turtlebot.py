@@ -86,3 +86,26 @@ class Turtlebot:
             self.estimator.update(u, z)
 
             self.x_hist.append(self.x)
+
+
+    def step(self, u_nom):
+        """Track a nominal trajectory"""
+        N = len(u_nom)
+
+        # Linearize about nominal trajectory
+        x_est = self.estimator.get_state()
+        self.dynamics.linearize(x_est, u_nom)
+        self.dynamics.noise_matrix(x_est)
+        self.sensor.linearize(x_est)
+
+        # Control
+        u = self.controller.get_control(u_nom, x_est, self.estimator.x_est)
+        self.x = self.dynamics.step(self.x, u)
+
+        # Measurement
+        z = self.sensor.get_measurement(self.x)
+        
+        # EKF
+        self.estimator.update(u, z)
+
+        self.x_hist.append(self.x)
