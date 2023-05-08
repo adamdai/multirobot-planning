@@ -236,3 +236,28 @@ def plot_trajectory(ax, traj, **kwargs):
         
     """
     ax.plot(traj[:,0], traj[:,1], **kwargs)
+
+
+def plot_environment(ax, obstacles, unc_regions, start, goal):
+    """Plot environment
+    """
+    ax.grid()
+    ax.axis('equal')
+    
+    # Plot obstacles
+    if obstacles is not None:
+        for obs in obstacles:
+            ax.add_patch(plt.Circle(tuple(obs[0]), obs[1], color='r', alpha=0.5, zorder=2))
+    
+    # Plot uncertainty regions
+    if unc_regions is not None:
+        for reg in unc_regions:
+            ax.add_patch(plt.Circle(tuple(reg[0]), reg[1], color='r', alpha=0.1, zorder=2))
+
+    # Plot goal
+    ax.scatter(goal[0], goal[1], s=100, marker='*', color='g')
+
+    # Plot start
+    ax.plot(start[0], start[1], 'bo')
+
+    return ax

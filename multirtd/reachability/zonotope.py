@@ -360,7 +360,7 @@ class Zonotope:
 
         if ax == None:
             fig, ax = plt.subplots()
-        poly = Polygon(V.T, closed=True, fill=True, color=color, alpha=alpha)
+        poly = Polygon(V.T, closed=True, fill=True, color=color, alpha=alpha, zorder=2)
         poly_edge = Polygon(V.T, closed=True, fill=False, color=color, alpha=line_alpha)
         ax.add_patch(poly)
         #ax.add_patch(poly_edge)

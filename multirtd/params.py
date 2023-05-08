@@ -8,6 +8,7 @@ T_PLAN = 5.0  # [s] amount of time allotted for planning itself
 T_PK = 1.5  # [s] time along trajectory of peak velocity
 TRAJ_TIME_LEN = 3.0  # [s] Trajectory total duration
 TRAJ_IDX_LEN = int(TRAJ_TIME_LEN / DT) + 1  # Trajectory length in timestep
+TRAJ_PK_IDX = int(T_PK / DT)  # Trajectory index of peak velocity
 
 N_DIM = 2  # workspace dimension (i.e. 2D or 3D)
 
