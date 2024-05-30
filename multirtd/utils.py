@@ -1,8 +1,5 @@
 import numpy as np
 import time
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
-from scipy.stats import chi2
 
 from multirtd.dynamics.LPM import LPM
 import multirtd.params as params
@@ -188,22 +185,6 @@ def signed_angle_btwn_vectors(v1, v2):
     return np.sign(np.cross(v1_, v2_)) * np.arccos(np.dot(v1_, v2_))
 
 
-def plot_ellipse(ax, c, Sigma, conf=0.95):
-    """Plot 2D confidence ellipse from center and covariance matrix
-    
-    """
-    s = chi2.ppf(conf, 2)
-    vals, vecs = np.linalg.eig(Sigma)
-    vals = np.maximum(vals, 1e-6)
-    order = vals.argsort()[::-1]
-    vals = vals[order]
-    vecs = vecs[:, order]
-    theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-    width, height = 2 * np.sqrt(s) * np.sqrt(vals)
-    ellip = Ellipse(xy=c, width=width, height=height, angle=theta, alpha=0.5)
-    ax.add_artist(ellip)
-
-
 def rot_mat_2D(theta):
     """2D rotation matrix
     
@@ -221,43 +202,3 @@ def rot_mat_2D(theta):
                      [np.sin(theta), np.cos(theta)]])
 
 
-
-def plot_trajectory(ax, traj, **kwargs):
-    """Plot a trajectory
-    
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Axes to plot on
-    traj : np.array
-        Trajectory to plot
-    **kwargs : dict
-        Keyword arguments to pass to ax.plot()
-        
-    """
-    ax.plot(traj[:,0], traj[:,1], **kwargs)
-
-
-def plot_environment(ax, obstacles, unc_regions, start, goal):
-    """Plot environment
-    """
-    ax.grid()
-    ax.axis('equal')
-    
-    # Plot obstacles
-    if obstacles is not None:
-        for obs in obstacles:
-            ax.add_patch(plt.Circle(tuple(obs[0]), obs[1], color='r', alpha=0.5, zorder=2))
-    
-    # Plot uncertainty regions
-    if unc_regions is not None:
-        for reg in unc_regions:
-            ax.add_patch(plt.Circle(tuple(reg[0]), reg[1], color='r', alpha=0.1, zorder=2))
-
-    # Plot goal
-    ax.scatter(goal[0], goal[1], s=100, marker='*', color='g')
-
-    # Plot start
-    ax.plot(start[0], start[1], 'bo')
-
-    return ax
